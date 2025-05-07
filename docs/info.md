@@ -19,6 +19,13 @@ HOURS SPENT DEBUGGING: 220
 PERSONS INVOLVED IN VERIFICATION EFFORT: 4
 ==============
 
+### I cannot believe I spent 4 hours trying to fix endianess and the issue was,
+    Address bits are held in "data[14:8]"
+    Data bits are held in "data[7:0]"
+    R/W bit is held in "data[15]"
+
+so guess who tried to assign data[15:8] to address and data[7:1] to the output :/
+
 ## External hardware
 
 List external hardware used in your project (e.g. PMOD, LED display, etc), if any

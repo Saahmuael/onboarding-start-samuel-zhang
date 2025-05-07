@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+//`include "spi_peripheral.v"
+//`include "pwm_peripheral.v"
 `default_nettype none
 
 module tt_um_uwasic_onboarding_samuel_zhang (
-    assign uio_oe = 8'hFF; // Set all IOs to output
-    
     input  wire [7:0] ui_in,    // Dedicated inputs
     output wire [7:0] uo_out,   // Dedicated outputs
     input  wire [7:0] uio_in,   // IOs: Input path
@@ -30,7 +30,7 @@ module tt_um_uwasic_onboarding_samuel_zhang (
      wire [7:0] en_reg_pwm_15_8;
      wire [7:0] pwm_duty_cycle;
   //other outputs
-     reg [15:0] out;
+     wire [15:0] out;
 
 /*
     input nCS, 
@@ -72,9 +72,8 @@ module tt_um_uwasic_onboarding_samuel_zhang (
     .en_reg_pwm_15_8(en_reg_pwm_15_8),
     .pwm_duty_cycle(pwm_duty_cycle),
 
-    .out(out);
-
-  )
+    .out(out)
+  );
 
   
 
