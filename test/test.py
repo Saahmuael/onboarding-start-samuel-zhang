@@ -280,7 +280,14 @@ async def test_pwm_duty(dut):
                     next = int(dut.uo_out.value)
 
             #duty cycle cases
+            if t_rising_edge1 > t_rising_edge2 or t_rising_edge1 == 0 or t_rising_edge2 == 0 or t_falling_edge == 0:
+                dut._log.info(f"test failed")
+            else:
+                period = t_rising_edge2 - t_rising_edge1
+                high_time = t_falling_edge - t_rising_edge1
+                duty = high_time/period
 
+                dut._log.info(f"measured duty cycle is: {duty} for case duty cycle: {case/255.0}")
 
         elif case == 0x00:
             prev = 0
