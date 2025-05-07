@@ -9,11 +9,15 @@ You can also include images in this folder and reference them in the markdown. E
 
 ## How it works
 
-Explain how your project works
+When I startedm both god and I knew. Now only god knows.
 
 ## How to test
 
-Explain how to use your project
+Add to this counter as a warning for those who have yet to come
+==============
+HOURS SPENT DEBUGGING: 220
+PERSONS INVOLVED IN VERIFICATION EFFORT: 4
+==============
 
 ## External hardware
 
