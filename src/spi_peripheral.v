@@ -21,8 +21,6 @@ module spi_peripheral #(parameter SYNC = 2)(
 //internal regs
 reg [4:0] sCLKcnt;
 reg [15:0] data;
-reg [6:0] addr;
-reg [7:0] val;
 
 reg [SYNC-1:0] sync_nCS;
 reg [SYNC-1:0] sync_SCLK; 
@@ -31,26 +29,16 @@ reg [SYNC-1:0] sync_COPI;
 //SPI DATA [15:0] IS [DATA 8 bit][ADDR 7 bit][R/W]
 //note the ADDR is by default 0x00-0x04
 
-//Sync it using 2 bit shift registers
+//take in SPI data, 
 always @(posedge clk or negedge rst_n) begin
-    if (!rst_n)begin
+
+    if (!rst_n) begin
+        sCLKcnt <= 5'b0;
+        data <= 16'b0;
+
         sync_nCS <= {SYNC{1'b0}};
         sync_SCLK <= {SYNC{1'b0}};
         sync_COPI <= {SYNC{1'b0}};
-    end else begin
-        sync_nCS <= {sync_nCS[SYNC-2:0], nCS};            //2'b10 is negedge
-        sync_SCLK <= {sync_SCLK[SYNC-2:0], SCLK};         //note, 2'b00 is lo, 2'b01 is posedge, 2'b11 is high, 2'b10 is negedge
-        sync_COPI <= {sync_COPI[SYNC-2:0], COPI};
-    end
-end
-
-//take in SPI data, 
-always @(posedge clk or negedge rst_n) begin
-    if (!rst_n) begin
-        sCLKcnt <= 5'b0;
-        addr <= 7'b0;
-        val <= 8'b0;
-        data <= 16'b0;
 
         en_reg_out_7_0 <= 8'b0;
         en_reg_out_15_8 <= 8'b0;
@@ -59,6 +47,11 @@ always @(posedge clk or negedge rst_n) begin
         pwm_duty_cycle <= 8'b0;
     end
     else begin
+        
+        sync_nCS <= {sync_nCS[SYNC-2:0], nCS};            //2'b10 is negedge
+        sync_SCLK <= {sync_SCLK[SYNC-2:0], SCLK};         //note, 2'b00 is lo, 2'b01 is posedge, 2'b11 is high, 2'b10 is negedge
+        sync_COPI <= {sync_COPI[SYNC-2:0], COPI};
+
         if (sync_nCS == 2'b10) begin
             sCLKcnt <= 5'b0;
             data <= 16'b0;
@@ -71,10 +64,7 @@ always @(posedge clk or negedge rst_n) begin
             end
         end
     end
-end
 
-//write out if write bit only
-always@(posedge clk) begin //introduces a 1clk delay tho
     if(sCLKcnt == 5'b10000 && data[15] == 1'b1)begin
         case (data[14:8]) 
             7'b0000000: en_reg_out_7_0 <= data[7:0];

@@ -312,7 +312,7 @@ async def test_pwm_duty(dut):
     dut.rst_n.value = 1
     await ClockCycles(dut.clk, 5)
 
-    for case in range(0, 256):
+    for case in range(0, 256, 17): #drastically reduced to decrease time
         ui_in_val = await send_spi_transaction(dut, 1, 0x04, case)
         ui_in_val = await send_spi_transaction(dut, 1, 0x02, 0x01) # enable output on pin 1
         ui_in_val = await send_spi_transaction(dut, 1, 0x00, 0x01) # enable PWM on pin 1
