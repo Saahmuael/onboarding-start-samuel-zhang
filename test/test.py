@@ -121,7 +121,7 @@ async def test_spi(dut):
     await ClockCycles(dut.clk, 100)
 
     dut._log.info("Read transaction (invalid), address 0x00, data 0xBE")
-    ui_in_val = await send_spi_transaction(dut, 0, 0x30, 0xBE)
+    ui_in_val = await send_spi_transaction(dut, 0, 0x00, 0xBE)
     assert dut.uo_out.value == 0xF0, f"Expected 0xF0, got {dut.uo_out.value}"
     await ClockCycles(dut.clk, 100)
     
@@ -151,13 +151,83 @@ async def test_spi(dut):
 
     dut._log.info("SPI test completed successfully")
 
-@cocotb.test()
+async def edgedetections(dut, outpos = 0, outstream=0):
+    #if any of these are -1 on return, means nothing was actually set
+    #Returns as a truple
+    t_rising_edge1 = -1
+    t_falling_edge1 = -1
+    t_rising_edge2 = -1
+
+    #other variables
+    bit = (1 << outpos - 1)
+    timeout_after_clk_cycles = 10000
+
+    if outstream == 0:
+        #wait for drop
+        for _ in range(timeout_after_clk_cycles): 
+            if int(dut.uo_out.value) &bit == 0:
+                break
+            await RisingEdge(dut.clk)
+
+        #wait for first rising edge
+        for _ in range(timeout_after_clk_cycles):
+            if int(dut.uo_out.value) &bit != 0:
+                t_rising_edge1 = get_sim_time(units="ns")
+                break
+            await RisingEdge(dut.clk)
+
+        #wait for drop
+        for _ in range(timeout_after_clk_cycles):
+            if int(dut.uo_out.value) &bit == 0:
+                t_falling_edge1 = get_sim_time(units="ns")
+                break
+            await RisingEdge(dut.clk)
+
+        #wait for next rising edge
+        for _ in range(timeout_after_clk_cycles):
+            if int(dut.uo_out.value) &bit != 0:
+                t_rising_edge2 = get_sim_time(units="ns")
+                break
+            await RisingEdge(dut.clk)
+    else:
+        for _ in range(timeout_after_clk_cycles): 
+            if int(dut.uio_out.value) &bit == 0:
+                break
+            await RisingEdge(dut.clk)
+
+        #wait for first rising edge
+        for _ in range(timeout_after_clk_cycles):
+            if int(dut.uio_out.value) &bit != 0:
+                t_rising_edge1 = get_sim_time(units="ns")
+                break
+            await RisingEdge(dut.clk)
+
+        #wait for drop
+        for _ in range(timeout_after_clk_cycles):
+            if int(dut.uio_out.value) &bit == 0:
+                t_falling_edge1 = get_sim_time(units="ns")
+                break
+            await RisingEdge(dut.clk)
+
+        #wait for next rising edge
+        for _ in range(timeout_after_clk_cycles):
+            if int(dut.uio_out.value) &bit != 0:
+                t_rising_edge2 = get_sim_time(units="ns")
+                break
+            await RisingEdge(dut.clk)
+
+    return t_rising_edge1, t_falling_edge1, t_rising_edge2
+
+
+
+@cocotb.test() 
 async def test_pwm_freq(dut):
     # Write your test here
     clock = Clock(dut.clk, 100, units="ns")
     cocotb.start_soon(clock.start())
 
     #initialize values for DUT
+
     dut._log.info("Reset")
     dut.ena.value = 1
     ncs = 1
@@ -170,58 +240,66 @@ async def test_pwm_freq(dut):
     dut.rst_n.value = 1
     await ClockCycles(dut.clk, 5)
 
+    #Sweep across lots of frequencies (THIS WAS LAST TESTED ON INCREMENT = 17, DROPPED TO SPEED UP)
+    for freq in range(0, 256, 51): 
+        dut._log.info(f"on duty cycle {(freq/255)*100}%")
+        #Verify across every port
+        for case in range(16):
+            ui_in_val = await send_spi_transaction(dut, 1, 0x04, freq)
+            #dut._log.info(f"enabling output. address {case//8+2} on pin {case % 8 + 1}")
+            dut._log.info(f"Checking on pin {case + 1}")
+
+            ui_in_val = await send_spi_transaction(dut, 1, case//8 + 2, 1 << (case % 8)) # enable output on pin 1
+            ui_in_val = await send_spi_transaction(dut, 1, case//8, 1 << (case % 8)) # enable PWM on pin 1
+
+            rising1, falling1, rising2 = await edgedetections(dut, case % 8 + 1, outstream = case//8)
+            
+            period = rising2 - rising1
+            
+            if freq == 0 or freq == 255: 
+                #these wont work for frequency because its always on or off. below will throw error
+                #You can check that if freq is 255. fallingedge should be -1 
+                #and if freq is 0, rising edge 1 and 2 is -1
+                dut._log.info(f"t_rising_edge1: {rising1}, t_rising_edge2: {rising2}, t_falling_edge: {falling1}")
+
+            else:
+                frequency = 1e9/period
+                dut._log.info(f"t_rising_edge1: {rising1}, t_rising_edge2: {rising2}")
+                dut._log.info(f"frequency is: {frequency}")
+                assert frequency < 3030 and frequency > 2970
+
+'''
     #configure DUT
+    ui_in_val = await send_spi_transaction(dut, 1, 0x04, 0x80) #set duty cycle
+    ui_in_val = await send_spi_transaction(dut, 1, 0x02, 0b00000100) # enable output on pin 7
+    ui_in_val = await send_spi_transaction(dut, 1, 0x00, 0b00000100) # enable PWM on pin 7
 
-    await send_spi_transaction(dut, 1, 0x04, 0x19) # set duty cycle to ~10%
-    await send_spi_transaction(dut, 1, 0x02, 0x01) # enable output on pin 1
-    await send_spi_transaction(dut, 1, 0x00, 0x01) # enable PWM on pin 1
-
-    prev = 0
-    await RisingEdge(dut.clk)
-    next = 0
-    t_rising_edge1 = 0
-    t_rising_edge2 = 0
-
-    #Hold stable
-    while int(dut.uo_out.value) != 0:
-        await RisingEdge(dut.clk)
-
-    #wait for first rising edge
-    for _ in range(1000): #1000 clock cycles
-        await RisingEdge(dut.clk)
-        next = int(dut.uo_out.value)
-        if prev == 0 and next == 1:
-            t_rising_edge1 = get_sim_time(units="ns")
-            break
-        prev = next
-
-    #wait for next rising edge
-    for _ in range(1000): #1000 clock cycles
-        await RisingEdge(dut.clk)
-        next = int(dut.uo_out.value)
-
-        if prev == 0 and next == 1:
-            t_rising_edge2 = get_sim_time(units="ns")
-            break
-        prev = next
-
-    if t_rising_edge1 > t_rising_edge2 or t_rising_edge2 == 0:
-        dut._log.info(f"t_rising_edge1: {t_rising_edge1}, t_rising_edge2: {t_rising_edge2}, frequency test failed")
-        dut._log.info(f"frequency test failed")
+    rising1, falling1, rising2 = await edgedetections(dut, 3, 0)
+    
+    period = rising2 - rising1
+    
+    if (rising1 == -1 or rising2 == -1 or rising1 == rising2):
+        dut._log.info(f"t_rising_edge1: {rising1}, t_rising_edge2: {rising2}, t_falling_edge: {falling1}")
     else:
-        period = t_rising_edge2 - t_rising_edge1
         frequency = 1e9/period
-
+        dut._log.info(f"t_rising_edge1: {rising1}, t_rising_edge2: {rising2}")
         dut._log.info(f"frequency is: {frequency}")
-        assert frequency < 3030 and  frequency > 2970
+        assert frequency < 3030 and frequency > 2970
+'''
+
+
 
 @cocotb.test()
 async def test_pwm_duty(dut):
-    # Write your test here
+
+    #very similar deal. Since above test verified pins work and design spec states no behavioural
+    #difference between pins, testing this on every pin is a waste. So pick one and sweep the frequencies
+
     clock = Clock(dut.clk, 100, units="ns")
     cocotb.start_soon(clock.start())
 
     #initialize values for DUT
+
     dut._log.info("Reset")
     dut.ena.value = 1
     ncs = 1
@@ -233,6 +311,30 @@ async def test_pwm_duty(dut):
     await ClockCycles(dut.clk, 5)
     dut.rst_n.value = 1
     await ClockCycles(dut.clk, 5)
+
+    for case in range(0, 256):
+        ui_in_val = await send_spi_transaction(dut, 1, 0x04, case)
+        ui_in_val = await send_spi_transaction(dut, 1, 0x02, 0x01) # enable output on pin 1
+        ui_in_val = await send_spi_transaction(dut, 1, 0x00, 0x01) # enable PWM on pin 1
+
+        dut._log.info(f"Checking duty cycle at {round((case/255)*100, 2)}% (case: {case})")
+
+        rising1, falling1, rising2 = await edgedetections(dut, 1, 0)
+        
+        
+        if case == 0:
+            #never rises in 10000 clock cycles
+            assert rising1 == -1
+        elif case == 255:
+            #never drops in 10000 clock cycles
+            assert falling1 == -1 
+        else:
+            period = rising2 - rising1
+            hightime = falling1 - rising1
+
+            #there is an extremely slight fluctuation, this is thus evaluated to a tolerance of 0.5%
+            tolerance = (case/255)*0.5
+            assert abs(((hightime/period)*100) - (case/255)*100) < tolerance, f"case failled. duty: {(case/255)*100}, actual duty: {(hightime/period)*100}"
 
             
     dut._log.info("PWM Duty Cycle test completed successfully")

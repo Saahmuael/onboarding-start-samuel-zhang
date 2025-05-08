@@ -62,6 +62,7 @@ always @(posedge clk or negedge rst_n) begin
         if (sync_nCS == 2'b10) begin
             sCLKcnt <= 5'b0;
             data <= 16'b0;
+
         end
         else if (sync_nCS == 2'b00 && sync_SCLK == 2'b01) begin
             if (sCLKcnt != 5'b10000) begin
@@ -72,8 +73,9 @@ always @(posedge clk or negedge rst_n) begin
     end
 end
 
+//write out if write bit only
 always@(posedge clk) begin //introduces a 1clk delay tho
-    if(sCLKcnt == 5'b10000)begin
+    if(sCLKcnt == 5'b10000 && data[15] == 1'b1)begin
         case (data[14:8]) 
             7'b0000000: en_reg_out_7_0 <= data[7:0];
             7'b0000001: en_reg_out_15_8 <= data[7:0];
