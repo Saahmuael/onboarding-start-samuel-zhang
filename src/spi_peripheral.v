@@ -45,8 +45,7 @@ always @(posedge clk or negedge rst_n) begin
         en_reg_pwm_7_0 <= 8'b0;
         en_reg_pwm_15_8 <= 8'b0;
         pwm_duty_cycle <= 8'b0;
-    end
-    else begin
+    end else begin
         
         sync_nCS <= {sync_nCS[SYNC-2:0], nCS};            //2'b10 is negedge
         sync_SCLK <= {sync_SCLK[SYNC-2:0], SCLK};         //note, 2'b00 is lo, 2'b01 is posedge, 2'b11 is high, 2'b10 is negedge
@@ -63,18 +62,18 @@ always @(posedge clk or negedge rst_n) begin
                 sCLKcnt <= sCLKcnt + 1;
             end
         end
-    end
 
-    if(sCLKcnt == 5'b10000 && data[15] == 1'b1)begin
-        case (data[14:8]) 
-            7'b0000000: en_reg_out_7_0 <= data[7:0];
-            7'b0000001: en_reg_out_15_8 <= data[7:0];
-            7'b0000010: en_reg_pwm_7_0 <= data[7:0];
-            7'b0000011: en_reg_pwm_15_8 <= data[7:0];
-            7'b0000100: pwm_duty_cycle <= data[7:0];
-            default: ;
-            //if address isnt one of them, just dont assign anything
-        endcase
+        if(sCLKcnt == 5'b10000 && data[15] == 1'b1)begin
+            case (data[14:8]) 
+                7'b0000000: en_reg_out_7_0 <= data[7:0];
+                7'b0000001: en_reg_out_15_8 <= data[7:0];
+                7'b0000010: en_reg_pwm_7_0 <= data[7:0];
+                7'b0000011: en_reg_pwm_15_8 <= data[7:0];
+                7'b0000100: pwm_duty_cycle <= data[7:0];
+                default: ;
+                //if address isnt one of them, just dont assign anything
+            endcase
+        end
     end
 end
 
