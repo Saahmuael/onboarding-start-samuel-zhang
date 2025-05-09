@@ -21,7 +21,7 @@ module pwm_peripheral (
     reg [7:0] pwm_counter;
     wire pwm_signal = (pwm_duty_cycle == 8'hFF) ? 1'b1 : (pwm_counter < pwm_duty_cycle); // 253 is 98.82% 254 is 99.21%, 255 is 100%, not 99.61%
 
-    always @(posedge clk or negedge rst_n) begin
+    always @(posedge clk) begin
         if (!rst_n) begin
             out <= 0;
             pwm_counter <= 0;
