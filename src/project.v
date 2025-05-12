@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-//`include "spi_peripheral.v"
-//`include "pwm_peripheral.v"
 `default_nettype none
 
 module tt_um_uwasic_onboarding_samuel_zhang (
