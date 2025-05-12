@@ -332,9 +332,8 @@ async def test_pwm_duty(dut):
             period = rising2 - rising1
             hightime = falling1 - rising1
 
-            #there is an extremely slight fluctuation, this is thus evaluated to a tolerance of 0.5%
-            tolerance = (case/255)*0.5
-            assert abs(((hightime/period)*100) - (case/255)*100) < tolerance, f"case failled. duty: {(case/255)*100}, actual duty: {(hightime/period)*100}"
+            dut._log.info(f"Expected Duty Cycle: {case/256}, actual duty cycle: {hightime/period}.")
+            assert ((hightime/period)*100) == (case/256)*100, f"case failled. duty: {(case/255)*100}, actual duty: {(hightime/period)*100}"
 
             
     dut._log.info("PWM Duty Cycle test completed successfully")
